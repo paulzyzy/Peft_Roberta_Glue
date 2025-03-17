@@ -62,9 +62,13 @@ def main():
 
     # Load the dataset and evaluation metric
     datasets = load_dataset("glue", args.task_name)
-    label_list = datasets["train"].features["label"].names
-    num_labels = len(label_list)
-    metric = evaluate.load("accuracy")
+    if not is_regression:
+        label_list = datasets["train"].features["label"].names
+        num_labels = len(label_list)
+    else:
+        num_labels = 1
+
+    metric = evaluate.load("glue", args.task_name)
 
     # Define task-to-keys mapping
     task_to_keys = {
@@ -88,11 +92,15 @@ def main():
 
     def compute_metrics(p: EvalPrediction):
         preds = p.predictions[0] if isinstance(p.predictions, tuple) else p.predictions
+        print("predictions:", preds)    
         preds = np.squeeze(preds) if is_regression else np.argmax(preds, axis=1)
-        result = metric.compute(predictions=preds, references=p.label_ids)
-        if len(result) > 1:
-            result["combined_score"] = np.mean(list(result.values())).item()
-        return result
+        if args.task_name is not None:
+            result = metric.compute(predictions=preds, references=p.label_ids)
+            if len(result) > 1:
+                result["combined_score"] = np.mean(list(result.values())).item()
+            return result
+        elif is_regression:
+            return {"mse": ((preds - p.label_ids) ** 2).mean().item()}
 
     # Handle label mapping if needed
     label_to_id = None
@@ -145,10 +153,10 @@ def main():
         xlora_depth=args.xlora_depth,
         device=torch.device("cuda"),
         adapters={
-            "adapter_1": "./lora_finetuned_model_cola",
+            # "adapter_1": "./lora_finetuned_model_cola",
             "adapter_2": "./lora_finetuned_model_mrpc",
-            "adapter_3": "./lora_finetuned_model_qnli",
-            "adapter_4": "./lora_finetuned_model_sst2",
+            # "adapter_3": "./lora_finetuned_model_qnli",
+            # "adapter_4": "./lora_finetuned_model_sst2",
         },
     ),
     verbose=True,
@@ -166,7 +174,7 @@ def main():
         weight_decay=args.weight_decay,
         logging_dir=args.logging_dir,
         logging_steps=args.logging_steps,
-        # fp16=args.fp16,
+        fp16=args.fp16,
         report_to="none",
     )
 
@@ -184,8 +192,8 @@ def main():
     trainer.train()
 
     # Save final model and tokenizer
-    xlora_model.save_pretrained("./lora_finetuned_model")
-    tokenizer.save_pretrained("./lora_finetuned_model")
+    xlora_model.save_pretrained("./xlora_finetuned_model")
+    tokenizer.save_pretrained("./xlora_finetuned_model")
 
 if __name__ == "__main__":
     main()

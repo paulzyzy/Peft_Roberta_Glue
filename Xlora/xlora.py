@@ -323,5 +323,5 @@ def from_pretrained(
             classifier_path if classifier_path is not None else os.path.join(load_directory, "xlora_classifier.pt")
         )
         classifier.load_state_dict(state_dict)  # type: ignore
-
+    model_peft.config.return_dict = True
     return model_peft

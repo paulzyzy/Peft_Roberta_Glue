@@ -8,9 +8,10 @@ import numpy
 import torch
 import tqdm  # type: ignore
 from huggingface_hub import HfFileSystem
-from transformers import AutoModelForCausalLM, AutoTokenizer  # type: ignore
+from transformers import AutoModelForCausalLM, AutoTokenizer,AutoModelForSequenceClassification # type: ignore
 from transformers.tokenization_utils import PreTrainedTokenizer  # type: ignore
 from transformers.tokenization_utils_fast import PreTrainedTokenizerFast  # type: ignore
+from peft import PeftModel, AutoPeftModelForSequenceClassification
 
 from xlora.xlora_config import xLoRAConfig  # type: ignore
 
@@ -118,7 +119,7 @@ def load_model(
             conf["adapters"] = adapters
         xlora_config = xLoRAConfig(**conf)
 
-    model = AutoModelForCausalLM.from_pretrained(
+    model = AutoModelForSequenceClassification.from_pretrained(
         xlora_config.base_model_id,
         trust_remote_code=True,
         device_map=device,

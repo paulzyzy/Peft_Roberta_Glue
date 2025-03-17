@@ -3,4 +3,4 @@ python3 peft_lora_eval.py \
     --max_seq_length 512 \
     --padding max_length \
     --model_name roberta-base \
-    --lora_model_dir "./xlora_finetuned_model" \
+    --lora_model_dir "./lora_finetuned_model_mrpc" \

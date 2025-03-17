@@ -18,7 +18,7 @@ import logging
 from peft import PeftModel, AutoPeftModelForSequenceClassification
 from torch.utils.data import DataLoader
 import random
-from Xlora.xlora import add_xlora_to_model
+from Xlora.xlora import add_xlora_to_model, from_pretrained
 from Xlora.xlora_config import xLoRAConfig
 from Xlora.xlora_utils import load_model
 
@@ -31,7 +31,6 @@ def parse_args():
     parser.add_argument("--padding", type=str, default="max_length", help="Padding strategy")
     parser.add_argument("--model_name", type=str, default="roberta-base", help="Base model name or path")
     parser.add_argument("--lora_model_dir", type=str, default="./lora_finetuned_model", help="LoRA fine-tuned model directory")
-    parser.add_argument("--metric", type=str, default="accuracy", help="evaluation metric")
     return parser.parse_args()
 
 def main():
@@ -56,7 +55,6 @@ def main():
     else:
         num_labels = 1
     metric = evaluate.load("glue", args.task_name)
-
     task_to_keys = {
         "cola": ("sentence", None),
         "mnli": ("premise", "hypothesis"),
@@ -69,7 +67,7 @@ def main():
         "wnli": ("sentence1", "sentence2"),
     }
      # Load base model and tokenizer
-    model = AutoModelForSequenceClassification.from_pretrained(args.model_name, num_labels=num_labels)
+    model = AutoModelForSequenceClassification.from_pretrained(args.model_name, num_labels=num_labels,use_cache=False)
     tokenizer = AutoTokenizer.from_pretrained(args.model_name, use_fast=True)
     args.max_seq_length = min(args.max_seq_length, tokenizer.model_max_length)
 
@@ -77,6 +75,8 @@ def main():
 
     def compute_metrics(p: EvalPrediction):
         preds = p.predictions[0] if isinstance(p.predictions, tuple) else p.predictions
+        print(preds)
+        print(p.label_ids)
         preds = np.squeeze(preds) if is_regression else np.argmax(preds, axis=1)
         if args.task_name is not None:
             result = metric.compute(predictions=preds, references=p.label_ids)
@@ -119,6 +119,7 @@ def main():
     test_dataset = datasets["test_matched" if args.task_name == "mnli" else "test"]
     data_collator = default_data_collator
 
+
     tasks = [args.task_name]
     eval_datasets = [eval_dataset]
     if args.task_name == "mnli":
@@ -135,16 +136,18 @@ def main():
     XLoRA_model, tokenizer = load_model(
         model_name=XLoRA_model_name,
         device="cuda:0",
-        dtype=torch.bfloat16,
+        dtype=torch.float32,
         load_xlora=True,
         adapters={
-            "adapter_1": "./lora_finetuned_model_cola",
+            # "adapter_1": "./lora_finetuned_model_cola",
             "adapter_2": "./lora_finetuned_model_mrpc",
-            "adapter_3": "./lora_finetuned_model_qnli",
-            "adapter_4": "./lora_finetuned_model_sst2",
+            # "adapter_3": "./lora_finetuned_model_qnli",
+            # "adapter_4": "./lora_finetuned_model_sst2",
         },
     )
-
+    print(XLoRA_model)
+    print(type(XLoRA_model.forward))
+    XLoRA_model.eval()
     trainer = Trainer(
         model=XLoRA_model,
         args=TrainingArguments(
@@ -158,5 +161,15 @@ def main():
         metrics = trainer.evaluate(eval_dataset=eval_dataset)
         print(metrics)
 
+    # Select only the first example from the evaluation dataset
+    first_sample = eval_dataset.select([0])
+    print(eval_dataset)
+    # Run prediction on the single sample
+    output = trainer.predict(first_sample)
+    print(first_sample)
+    # Print predictions and labels
+    print(output.predictions[1])
+    print("Predictions:", output.predictions)
+    print("Labels:", output.label_ids)
 if __name__ == "__main__":
     main()

@@ -26,7 +26,6 @@ def parse_args():
     parser.add_argument("--padding", type=str, default="max_length", help="Padding strategy")
     parser.add_argument("--model_name", type=str, default="roberta-base", help="Base model name or path")
     parser.add_argument("--lora_model_dir", type=str, default="./lora_finetuned_model", help="LoRA fine-tuned model directory")
-    parser.add_argument("--metric", type=str, default="accuracy", help="evaluation metric")
     return parser.parse_args()
 
 def main():
@@ -73,6 +72,8 @@ def main():
 
     def compute_metrics(p: EvalPrediction):
         preds = p.predictions[0] if isinstance(p.predictions, tuple) else p.predictions
+        print(preds)
+        print(p.label_ids)
         preds = np.squeeze(preds) if is_regression else np.argmax(preds, axis=1)
         if args.task_name is not None:
             result = metric.compute(predictions=preds, references=p.label_ids)
@@ -141,6 +142,16 @@ def main():
     for eval_dataset, task in zip(eval_datasets, tasks):
         metrics = trainer.evaluate(eval_dataset=eval_dataset)
         print(metrics)
+
+    # Select only the first example from the evaluation dataset
+    first_sample = eval_dataset.select([0])
+
+    # Run prediction on the single sample
+    output = trainer.predict(first_sample)
+
+    # Print predictions and labels
+    print("Predictions:", output.predictions)
+    print("Labels:", output.label_ids)
 
 if __name__ == "__main__":
     main()
