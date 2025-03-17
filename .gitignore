@@ -9,4 +9,6 @@ xlora_finetuned_model/
 xlora_finetuned_model_mrpc/
 xlora_finetuned_model_mrpc_/
 xlora_finetuned_model_mrpc__/
+*__pycache__/*
+*.pyc
 
