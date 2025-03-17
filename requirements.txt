@@ -6,3 +6,5 @@ torch
 huggingface_hub
 jupyter 
 jupyterlab
+datasets
+evaluate

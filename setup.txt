@@ -1,0 +1,15 @@
+1. In this folder run:  docker build -t xlora .
+2. On terminal run: bash run_docker.sh
+3. After executing the docker container, go to vscode right click the "><" on the left_bottom corner and click "attach to the running container" then select your running container.
+    This will bring you to the vscode environment that is under the docker dependency.
+4. Install Jupyter, Jupyterhub and Python extension in the container
+5. Go to test.ipynb and click on the select kernel at right-upper corner. For the first time choose "Existing kernel" -> "Enter URL" -> Type: http://localhost:8888.
+    If "Python (Docker)" kernel already exist then select that one
+6. Enter the args for testing and the run every cell as colab to execute the code.
+7. Set a break point you want to use by clicking the beginning part for the line of code you want to stop by.
+8. To debug, you will need to select "Debug Cell" by dragging down the more options next to the execution button.
+9. The debugger has several options:
+    1 "Step next" is to go to next line of code and walk step by step and entering every functions following execution,
+    2."Step over" is to skip the function that will require to switch to the other stack and just go line by line in current context
+    3. "Continue" is to directly jump to the next breakpoints following the execution pipeline of the code. You can set the breakpoints on the fly!!
+    4. You can open terminal and select the debugger console to type in the variable name and command like: a.shape or a + b to get the value of that.
