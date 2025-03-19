@@ -21,8 +21,41 @@ import random
 from Xlora.xlora import add_xlora_to_model, from_pretrained
 from Xlora.xlora_config import xLoRAConfig
 from Xlora.xlora_utils import load_model
+from sklearn.metrics import accuracy_score, f1_score
 
 logger = logging.getLogger(__name__)
+
+def classifier_hook(module, inputs, output):
+    print("[HOOK] Internal xLoRA classifier called.")
+    print("Input shape:", inputs[0].shape)
+    try:
+        print("Output shape:", output.shape)
+    except Exception:
+        print("Output:", output)
+
+# Define a hook function that prints out info from the module forward pass.
+def debug_hook(module, input, output):
+    # Here you can customize what you want to print.
+    # For instance, print the module's class name and the shape of its output.
+    try:
+        out_shape = output.shape
+    except Exception:
+        out_shape = "N/A"
+    print(f"[DEBUG] Module {module.__class__.__name__} called; output shape: {out_shape}")
+    return output
+
+def register_hooks(model):
+    hook_handles = []
+    # For example, if you want to hook every module:
+    for name, module in model.named_modules():
+        # If you want to filter and only hook certain modules, you could do so here.
+        handle = module.register_forward_hook(debug_hook)
+        hook_handles.append(handle)
+    return hook_handles
+
+def remove_hooks(hook_handles):
+    for handle in hook_handles:
+        handle.remove()
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Evaluate a fine-tuned LoRA model on a GLUE task")
@@ -74,9 +107,10 @@ def main():
     sentence1_key, sentence2_key = task_to_keys[args.task_name]
 
     def compute_metrics(p: EvalPrediction):
+        # print("Computing metrics...")
         preds = p.predictions[0] if isinstance(p.predictions, tuple) else p.predictions
-        print(preds)
-        print(p.label_ids)
+        # print(preds)
+        # print(p.label_ids)
         preds = np.squeeze(preds) if is_regression else np.argmax(preds, axis=1)
         if args.task_name is not None:
             result = metric.compute(predictions=preds, references=p.label_ids)
@@ -139,15 +173,18 @@ def main():
         dtype=torch.float32,
         load_xlora=True,
         adapters={
-            # "adapter_1": "./lora_finetuned_model_cola",
-            "adapter_2": "./lora_finetuned_model_mrpc",
-            # "adapter_3": "./lora_finetuned_model_qnli",
-            # "adapter_4": "./lora_finetuned_model_sst2",
+            "adapter_1": "./lora_finetuned_model_cola",
+            #  "adapter_2": "./lora_finetuned_model_mrpc",
+            "adapter_3": "./lora_finetuned_model_qnli",
+            "adapter_4": "./lora_finetuned_model_sst2",
         },
     )
-    print(XLoRA_model)
-    print(type(XLoRA_model.forward))
+    # print(XLoRA_model)
+    # print(type(XLoRA_model.forward))
     XLoRA_model.eval()
+    hook_handle = XLoRA_model.internal_xlora_classifier.register_forward_hook(classifier_hook)
+    # # hook_handles = register_hooks(XLoRA_model)
+
     trainer = Trainer(
         model=XLoRA_model,
         args=TrainingArguments(
@@ -157,19 +194,28 @@ def main():
         data_collator=data_collator,           
         compute_metrics=compute_metrics
     )
-    for eval_dataset, task in zip(eval_datasets, tasks):
-        metrics = trainer.evaluate(eval_dataset=eval_dataset)
-        print(metrics)
+    for dataset, task in zip(eval_datasets, tasks):
+        print(f"Evaluating task: {task}")
+        # Use trainer.predict to get model outputs and labels
+        # dataset=dataset.select([0])
+        eval_output = trainer.predict(dataset)
+        # If the model output is a tuple, we assume logits are in index 1.
+        logits = eval_output.predictions[1] if isinstance(eval_output.predictions, tuple) else eval_output.predictions
+        # For classification, take argmax over logits to get predicted class indices.
+        preds = np.argmax(logits, axis=1)
+        labels = dataset["label"]
+        # print(f"Predictions: {logits}")  
+        # print(f"Labels: {labels}")
 
-    # Select only the first example from the evaluation dataset
-    first_sample = eval_dataset.select([0])
-    print(eval_dataset)
-    # Run prediction on the single sample
-    output = trainer.predict(first_sample)
-    print(first_sample)
-    # Print predictions and labels
-    print(output.predictions[1])
-    print("Predictions:", output.predictions)
-    print("Labels:", output.label_ids)
+        # Compute accuracy and F1 score manually using sklearn
+        acc = accuracy_score(labels, preds)
+        f1 = f1_score(labels, preds, average="macro")
+        combined_score = (acc + f1) / 2
+        print(f"Metrics for task {task}:")
+        print({"accuracy": acc, "f1": f1, "combined_score": combined_score})
+        print("results for xlora eval")
+    # remove_hooks(hook_handle)
+    hook_handle.remove()
+
 if __name__ == "__main__":
     main()

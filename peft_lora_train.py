@@ -86,7 +86,10 @@ def main():
     sentence1_key, sentence2_key = task_to_keys[args.task_name]
 
     def compute_metrics(p: EvalPrediction):
+        print("Computing metrics...")
         preds = p.predictions[0] if isinstance(p.predictions, tuple) else p.predictions
+        print(preds)
+        print(p.label_ids)
         preds = np.squeeze(preds) if is_regression else np.argmax(preds, axis=1)
         if args.task_name is not None:
             result = metric.compute(predictions=preds, references=p.label_ids)

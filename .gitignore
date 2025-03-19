@@ -9,6 +9,11 @@ xlora_finetuned_model/
 xlora_finetuned_model_mrpc/
 xlora_finetuned_model_mrpc_/
 xlora_finetuned_model_mrpc__/
+xlora_finetuned_model_mrpcadapter/
+xlora_finetuned_model_3adaptertrain_20epoch/
+xlora_finetuned_model_3adaptertrain_30epoch/
+xlora_finetuned_model_4adapters/
+xlora_finetuned_model_cola_qnli_sst2/
 *__pycache__/*
 *.pyc
 

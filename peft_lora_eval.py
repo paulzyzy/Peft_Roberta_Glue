@@ -17,6 +17,7 @@ import logging
 from peft import PeftModel, AutoPeftModelForSequenceClassification
 from torch.utils.data import DataLoader
 import random
+from sklearn.metrics import accuracy_score, f1_score
 logger = logging.getLogger(__name__)
 
 def parse_args():
@@ -72,8 +73,8 @@ def main():
 
     def compute_metrics(p: EvalPrediction):
         preds = p.predictions[0] if isinstance(p.predictions, tuple) else p.predictions
-        print(preds)
-        print(p.label_ids)
+        # print(preds)
+        # print(p.label_ids)
         preds = np.squeeze(preds) if is_regression else np.argmax(preds, axis=1)
         if args.task_name is not None:
             result = metric.compute(predictions=preds, references=p.label_ids)
@@ -129,7 +130,7 @@ def main():
     # peft_model.eval()
     peft_model = AutoPeftModelForSequenceClassification.from_pretrained(args.lora_model_dir)
     peft_model.eval()
-
+    model.eval()
     trainer = Trainer(
         model=peft_model,
         args=TrainingArguments(
@@ -150,8 +151,29 @@ def main():
     output = trainer.predict(first_sample)
 
     # Print predictions and labels
-    print("Predictions:", output.predictions)
-    print("Labels:", output.label_ids)
+    # print("Predictions:", output.predictions)
+    # print("Labels:", output.label_ids)
+    for dataset, task in zip(eval_datasets, tasks):
+        print(f"Evaluating task: {task}")
+        # Use trainer.predict to get model outputs and labels
+        eval_output = trainer.predict(dataset)
+        # If the model output is a tuple, we assume logits are in index 1.
+        logits = eval_output.predictions[0] if isinstance(eval_output.predictions, tuple) else eval_output.predictions
+        # For classification, take argmax over logits to get predicted class indices.
+        preds = np.argmax(logits, axis=1)
+        labels = dataset["label"]
+        # print(f"Predictions: {logits}") 
+        # L = dataset["label"]
+        # print(f"Predictions: {preds}")  
+        # print(f"Labels: {labels}")
+        # print(f"Labels from dataset: {L}")  
 
+        # Compute accuracy and F1 score manually using sklearn
+        acc = accuracy_score(labels, preds)
+        f1 = f1_score(labels, preds)
+        combined_score = (acc + f1) / 2
+        print(f"Metrics for task {task}:")
+        print({"accuracy": acc, "f1": f1, "combined_score": combined_score})
+        print("results for lora eval")
 if __name__ == "__main__":
     main()

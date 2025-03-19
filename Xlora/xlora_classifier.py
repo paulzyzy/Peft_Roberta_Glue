@@ -125,6 +125,7 @@ class xLoRAClassifier(nn.Module):
         """
         Using the hidden states of the model, predict `n_classes` LoRA alpha values. Sets the scalings.
         """
+        # print("[DEBUG] internal_xlora_classifier.forward called with input shape:", input_ids.shape)
         if input_ids is not None:
             batch_size = input_ids.shape[0]
         else:
@@ -185,7 +186,8 @@ class xLoRAClassifier(nn.Module):
 
         if self.scalings_logging:
             self.log_scalings.append(scalings)
-
+        # print(f"[DEBUG] internal_xlora_classifier.forward finished with scalings shape: {scalings.shape}")
+        # print(f"[DEBUG] internal_xlora_classifier.forward finished with scalings: {scalings}")
         return scalings
 
     def get_nb_trainable_parameters(self):

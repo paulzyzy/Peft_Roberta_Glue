@@ -3,8 +3,8 @@ python3 "./peft_xlora_train.py" \
   --max_seq_length 512 \
   --padding "max_length" \
   --model_name "roberta-base" \
-  --learning_rate 1.6e-3 \
-  --num_train_epochs 20 \
+  --learning_rate 4e-4 \
+  --num_train_epochs 30 \
   --per_device_train_batch_size 16 \
   --per_device_eval_batch_size 16 \
   --weight_decay 0.1 \
