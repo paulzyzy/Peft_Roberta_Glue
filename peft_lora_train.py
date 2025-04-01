@@ -43,6 +43,8 @@ def parse_args():
 
 def main():
     args = parse_args()
+    print(args)
+    # exit(0)
 
     # Set random seed for reproducibility
     random_seed = 42
@@ -79,17 +81,21 @@ def main():
     }
 
     # Load base model and tokenizer
-    model = AutoModelForSequenceClassification.from_pretrained(args.model_name, num_labels=num_labels)
-    tokenizer = AutoTokenizer.from_pretrained(args.model_name, use_fast=True)
+    model = AutoModelForSequenceClassification.from_pretrained(args.model_name, num_labels=num_labels,torch_dtype=torch.float32)
+    tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+    model = model.float()
+    
     args.max_seq_length = min(args.max_seq_length, tokenizer.model_max_length)
 
     sentence1_key, sentence2_key = task_to_keys[args.task_name]
 
+    # print("ZYZYZYZYZYZYYZYZYZ")
+    # exit(0)
     def compute_metrics(p: EvalPrediction):
         print("Computing metrics...")
         preds = p.predictions[0] if isinstance(p.predictions, tuple) else p.predictions
-        print(preds)
-        print(p.label_ids)
+        # print(preds)
+        # print(p.label_ids)
         preds = np.squeeze(preds) if is_regression else np.argmax(preds, axis=1)
         if args.task_name is not None:
             result = metric.compute(predictions=preds, references=p.label_ids)

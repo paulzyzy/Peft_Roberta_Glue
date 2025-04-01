@@ -174,7 +174,7 @@ def main():
         load_xlora=True,
         adapters={
             "adapter_1": "./lora_finetuned_model_cola",
-            #  "adapter_2": "./lora_finetuned_model_mrpc",
+             "adapter_2": "./lora_finetuned_model_mrpc",
             "adapter_3": "./lora_finetuned_model_qnli",
             "adapter_4": "./lora_finetuned_model_sst2",
         },

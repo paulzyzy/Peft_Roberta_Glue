@@ -5,6 +5,7 @@ lora_finetuned_model_mrpc_/
 lora_finetuned_model_qnli/
 lora_finetuned_model_sst2/
 lora_finetuned_model_stsb/
+lora_deberta_mrpc/
 xlora_finetuned_model/
 xlora_finetuned_model_mrpc/
 xlora_finetuned_model_mrpc_/
