@@ -43,6 +43,10 @@ def parse_args():
 
 def main():
     args = parse_args()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("Number of visible GPUs:", torch.cuda.device_count())
+    for i in range(torch.cuda.device_count()):
+        print(f"GPU {i} name:", torch.cuda.get_device_name(i))
     print(args)
     # exit(0)
 
@@ -81,16 +85,13 @@ def main():
     }
 
     # Load base model and tokenizer
-    model = AutoModelForSequenceClassification.from_pretrained(args.model_name, num_labels=num_labels,torch_dtype=torch.float32)
-    tokenizer = AutoTokenizer.from_pretrained(args.model_name)
-    model = model.float()
+    model = AutoModelForSequenceClassification.from_pretrained(args.model_name, num_labels=num_labels)
+    tokenizer = AutoTokenizer.from_pretrained(args.model_name, use_fast=True)
+    model = model.to(device)
     
     args.max_seq_length = min(args.max_seq_length, tokenizer.model_max_length)
 
     sentence1_key, sentence2_key = task_to_keys[args.task_name]
-
-    # print("ZYZYZYZYZYZYYZYZYZ")
-    # exit(0)
     def compute_metrics(p: EvalPrediction):
         print("Computing metrics...")
         preds = p.predictions[0] if isinstance(p.predictions, tuple) else p.predictions
@@ -145,7 +146,7 @@ def main():
     )
     for param in model.parameters():
         param.requires_grad = False
-    peft_lora_model = get_peft_model(model, lora_config)
+    peft_lora_model = get_peft_model(model, lora_config).to(device)
 
     # Define training arguments
     training_args = TrainingArguments(
@@ -177,8 +178,10 @@ def main():
     trainer.train()
 
     # Save final model and tokenizer
-    peft_lora_model.save_pretrained("./lora_finetuned_model")
-    tokenizer.save_pretrained("./lora_finetuned_model")
+    # peft_lora_model.save_pretrained("./lora_finetuned_model")
+    # tokenizer.save_pretrained("./lora_finetuned_model")
+    peft_lora_model.save_pretrained(args.output_dir)
+    tokenizer.save_pretrained(args.output_dir)
 
 if __name__ == "__main__":
     main()

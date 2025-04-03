@@ -1,4 +1,5 @@
-peft
+python==Python 3.9.21
+peft==0.14.0
 safetensors
 transformers
 numpy
